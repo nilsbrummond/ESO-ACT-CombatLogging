@@ -1,0 +1,6 @@
+## Title: ACT Combat Logging
+## APIVersion: 100000
+## SavedVariables: ACT-CL
+
+ACTCombatLog.xml
+ACTCombatLog.lua
