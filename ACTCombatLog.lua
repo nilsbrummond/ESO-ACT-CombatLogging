@@ -1,12 +1,23 @@
 --
--- Combat Log - LUA
+-- ACT Combat Log - LUA
 --
 -- Author:  @Lodur
--- Github:  www.github.com/nilsbrummond/ESO-Plugin-CombatLog
+-- Github:  www.github.com/nilsbrummond/ESO-ACT-CombatLogging
 --
 -- Usage Notes:   /combatlog      - toggle logging
 --                /combatlog on   - turn on logging
 --                /combatlog off  - turn off logging
+--
+--
+-- Objectives
+--  1. Log combat events to a file.
+--      -- A file is required from use with ACT.
+--  2. Combat log file to be human readable.
+--      -- Much easier to debug and understand.
+--  3. Minimize changes to log file based on changes from ESO.
+--      -- No magic numbers
+--      -- Hopefully ACT will be able to read older log files
+--          even when ESO changes.
 --
 --
 -- 1. Create a chat tab for combat log messages.
@@ -31,39 +42,50 @@
 --
 --
 
-CombatLog = {}
-CombatLog.version = 0.01
+-- Global
+
+ACTCombatLog = {}
+ACTCombatLog.version = 0.01
+ACTCombatLog.enabled = false
+
+ACTCombatLog.Enable  = function() SetEnabled(true) end
+ACTCombatLog.Disable = function() SetEnabled(false) end
+
+-- Local
+
+local 
 
 local Enumerations = GetEnumerations()
 
-CombatLog.Initialize = function( self, addOnName )
+local function Initialize( self, addOnName )
 
   -- Only Init us...
-  if addOnName ~= "CombatLog" then return end
+  if addOnName ~= "ACTCombatLog" then return end
 
   local defaults = 
   {
     logging = false,
   }
 
-  CombatLog.savedVars = ZO_SavedVars:New(
-    "CombatLogVars",
-    math.floor( CombatLog.version * 100 ),
-    nil,
-    defaults,
-    nil)
+  ACTCombatLog.savedVars = ZO_SavedVars:New(
+    "ACTCombatLogVars",
+    math.floor( ACTCombatLog.version * 100 ),
+    nil, defaults, nil)
 
-  CombatLog.SetupCombatChatChannel()
 
-  if CombatLog.savedVars.logging then
-    CombatLog.Start()
+  if ACTCombatLog.savedVars.logging then
+    ACTCombatLog.Start()
   end
+ 
+
+  ACTCombatLog.SetupCombatChatChannel()
+
 
   -- Combat
   EVENT_MANAGER:RegisterForEvent( 
-    "CombatLog", EVENT_COMBAT_EVENT, CombatLog.EventCombat )
-  EVENT_MANAGER:RegisterForEvent( 
-    "CombatLog", EVENT_UNIT_DEATH_STATE_CHANGED, CombatLog.EventUnitDeathState )
+    "ACTCombatLog", EVENT_COMBAT_EVENT, EventCombat )
+
+  -- EVENT_UNIT_DEATH_STATE_CHANGED
   -- EVENT_PLAYER_DEAD?
   -- EVENT_PLAYER_DEATH_INFO_UPDATE?
 
@@ -76,40 +98,53 @@ CombatLog.Initialize = function( self, addOnName )
   
   -- EVENT_ACTIVE_WEAPON_PAIR_CHANGED ??
 
+
   -- Buffs / Debuffs
-  
-  -- EVENT_MANAGER:RegisterForEvent( 
-  -- "CombatLog", EVENT_EFFECTS_FULL_UPDATE, CombatLog.EventEffectChanged )
-  -- EVENT_MANAGER:RegisterForEvent( 
-  -- "CombatLog", EVENT_EFFECT_CHANGED, CombatLog.EventEffectChanged )
+  EVENT_MANAGER:RegisterForEvent( 
+    "ACTCombatLog", EVENT_EFFECTS_FULL_UPDATE, EventFullEffectChanged )
+  EVENT_MANAGER:RegisterForEvent( 
+    "ACTCombatLog", EVENT_EFFECT_CHANGED, EventEffectChanged )
 
   
   -- Casting
-  EVENT_MANAGER:RegisterForEvent( 
-    "CombatLog", EVENT_BEGIN_CAST, CombatLog.EventBeginCast )
-  EVENT_MANAGER:RegisterForEvent( 
-    "CombatLog", EVENT_DELAY_CAST, CombatLog.EventDelayCast )
-  EVENT_MANAGER:RegisterForEvent( 
-    "CombatLog", EVENT_END_CAST, CombatLog.EventEndCast )
+  -- EVENT_BEGIN_CAST
+  -- EVENT_DELAY_CAST
+  -- EVENT_END_CAST
 
   -- Synergy
   EVENT_MANAGER:RegisterForEvent( 
-    "CombatLog", EVENT_SYNERGY_ABILITY_GAINED, CombatLog.EventSynergyGained )
+    "ACTCombatLog", EVENT_SYNERGY_ABILITY_GAINED, EventSynergyGained )
   EVENT_MANAGER:RegisterForEvent( 
-    "CombatLog", EVENT_SYNERGY_ABILITY_LOST, CombatLog.EventSynergyLost )
+    "ACTCombatLog", EVENT_SYNERGY_ABILITY_LOST, EventSynergyLost )
 
   -- Revenge Kill
   EVENT_MANAGER:RegisterForEvent( 
-    "CombatLog", EVENT_REVENGE_KILL, CombatLog.EventRevengeKill )
+    "ACTCombatLog", EVENT_REVENGE_KILL, EventRevengeKill )
 
   -- Zone Changes
   EVENT_MANAGER:RegisterForEvent( 
-    "CombatLog", EVENT_ZONE_CHANGED, CombatLog.EventZoneChanged )
+    "ACTCombatLog", EVENT_ZONE_CHANGED, EventZoneChanged )
 
+
+  ACTCombatLog.enabled = true
+end
+
+
+-- Write to the combat log...
+local function Log(type, ...)
+
+  str = "[" .. type .. "]"
+  for _,v in ipairs(arg) do
+    str = str .. "[" .. v .. "]"
+  end
+
+  -- TODO better way to do this?
+  d (str)
 
 end
 
-CombatLog.EventCombat = function(
+
+local function EventCombat(
   eventCode , result , isError ,
   abilityName, abilityGraphic, abilityActionSlotType,
   sourceName, sourceType, targetName, targetType,
@@ -122,18 +157,62 @@ CombatLog.EventCombat = function(
  -- damageType                = DAMAGE_TYPE_*
  
   -- Dump combat events 
-	d( "[" .. result .. "]," .. "[" .. abilityName .. "]," .. "[" .. sourceName .. "]," .. 
-     "[" .. sourceType .. "]," .. "[" .. targetName .. "]," .. "[" .. targetType .. "]," .. 
-     "[" .. hitValue .. "]," .. "[" .. abilityActionSlotType .. "]," .. "[" .. powerType .. "]," .. 
-     "[" .. damageType .. "]" .. "[" .. log .. "]" )
+	Log( "CMBT", eventCode , result , isError ,
+       abilityName, abilityGraphic, abilityActionSlotType,
+       sourceName, sourceType, targetName, targetType,
+       hitValue, powerType, damageType, log )
 
   if isError then return end
-
   
 
 end
 
-CombatLog.SetupCombatChatChannel = function()
+local function EventEffectFullChanged()
+
+  Log ( "EFFF" )
+
+end
+
+local function EventEffectChanged(changeType, effectSlot, effectName,
+  unitTag, beginTime, endTime, stackCount, iconName, buffType, effectType,
+  abilityType, statusEffectType)
+
+  Log ( "EFFC", changeType, effectSlot, effectName, unitTag, beginTime,
+        endTime, stackCount, iconName, buffType, effectType, abilityType, 
+        statusEffectType )
+
+end
+
+local function EventSynergyGained(
+  synergyBuffSlot, grantedAbilityName, beginTime, endTime, iconName)
+
+  Log ( "SYNG", "Gain", synergyBuffSlot, grantedAbilityName,
+        beginTime, endTime, iconName)
+
+end
+
+
+local function EventSynergyLost(synergyBuffSlot)
+
+  Log ( "SYNG",  "Lost", synergyBuffSlot )
+
+end
+
+local function EventRevengeKill(killedPlayerName)
+
+  Log( "RVNG", killedPlayerName )
+
+end
+
+
+local function EventZoneChanged(zoneName, subZoneName, newSubzone)
+
+  Log( "ZONE", zoneName, subZoneName, newSubzone )
+
+end
+
+
+local function SetupCombatChatChannel()
   -- JoinChatChannel??
   -- AddChatContainerTab
   -- SetChatContainerTabCategoryEnabled
@@ -143,7 +222,7 @@ CombatLog.SetupCombatChatChannel = function()
 
 end
 
-CombatLog.SetLoggingState = function(active)
+local function SetLoggingState(active)
   if active then
     -- Register for events
     -- turn on /chatlog
@@ -154,19 +233,19 @@ CombatLog.SetLoggingState = function(active)
   end
 end
 
-CombatLog.CommandHandler = function(text)
+local function CommandHandler(text)
   if text == "" then
-    CombatLog.SetLoggingState(not CombatLog.loggingState)
+    SetLoggingState(not loggingState)
   elseif text == "on" then
-    CombatLog.SetLoggingState(true)
+    SetLoggingState(true)
   elseif text == "off" then
-    CombatLog.SetLoggingState(false)
+    SetLoggingState(false)
   end
 end
 
 -- Init Hook --
 EVENT_MANAGER:RegisterForEvent( 
-  "CombatLog", EVENT_ADD_ON_LOADED, CombatLog.Initialize )
+  "ACTCombatLog", EVENT_ADD_ON_LOADED, Initialize )
 
 -- Slash Commands --
-SLASH_COMMANDS["/combatlog"] = CombatLog.CommandHandler
+SLASH_COMMANDS["/combatlog"] = CommandHandler
