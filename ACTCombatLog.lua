@@ -53,9 +53,8 @@ ACTCombatLog.Disable = function() SetEnabled(false) end
 
 -- Local
 
-local 
 
-local Enumerations = GetEnumerations()
+local enums = GetEnumerations()
 
 local function Initialize( self, addOnName )
 
@@ -78,12 +77,12 @@ local function Initialize( self, addOnName )
   end
  
 
-  ACTCombatLog.SetupCombatChatChannel()
+  SetupCombatChatChannel()
 
 
   -- Combat
   EVENT_MANAGER:RegisterForEvent( 
-    "ACTCombatLog", EVENT_COMBAT_EVENT, EventCombat )
+    "ACTCombatLog", EVENT_COMBAT_EVENT, ACTCombatLog.EventCombat )
 
   -- EVENT_UNIT_DEATH_STATE_CHANGED
   -- EVENT_PLAYER_DEAD?
@@ -101,9 +100,12 @@ local function Initialize( self, addOnName )
 
   -- Buffs / Debuffs
   EVENT_MANAGER:RegisterForEvent( 
-    "ACTCombatLog", EVENT_EFFECTS_FULL_UPDATE, EventFullEffectChanged )
+    "ACTCombatLog", EVENT_EFFECTS_FULL_UPDATE,
+    ACTCombatLog.EventEffectFullChanged )
+
   EVENT_MANAGER:RegisterForEvent( 
-    "ACTCombatLog", EVENT_EFFECT_CHANGED, EventEffectChanged )
+    "ACTCombatLog", EVENT_EFFECT_CHANGED, 
+    ACTCombatLog.EventEffectChanged )
 
   
   -- Casting
@@ -112,30 +114,30 @@ local function Initialize( self, addOnName )
   -- EVENT_END_CAST
 
   -- Synergy
-  EVENT_MANAGER:RegisterForEvent( 
-    "ACTCombatLog", EVENT_SYNERGY_ABILITY_GAINED, EventSynergyGained )
-  EVENT_MANAGER:RegisterForEvent( 
-    "ACTCombatLog", EVENT_SYNERGY_ABILITY_LOST, EventSynergyLost )
+--  EVENT_MANAGER:RegisterForEvent( 
+--    "ACTCombatLog", EVENT_SYNERGY_ABILITY_GAINED, ACTCombatLog.EventSynergyGained )
+--  EVENT_MANAGER:RegisterForEvent( 
+--    "ACTCombatLog", EVENT_SYNERGY_ABILITY_LOST, ACTCombatLog.EventSynergyLost )
 
   -- Revenge Kill
-  EVENT_MANAGER:RegisterForEvent( 
-    "ACTCombatLog", EVENT_REVENGE_KILL, EventRevengeKill )
+--  EVENT_MANAGER:RegisterForEvent( 
+--    "ACTCombatLog", EVENT_REVENGE_KILL, ACTCombatLog.EventRevengeKill )
 
   -- Zone Changes
   EVENT_MANAGER:RegisterForEvent( 
-    "ACTCombatLog", EVENT_ZONE_CHANGED, EventZoneChanged )
-
+    "ACTCombatLog", EVENT_ZONE_CHANGED, ACTCombatLog.EventZoneChanged )
 
   ACTCombatLog.enabled = true
 end
 
 
 -- Write to the combat log...
-local function Log(type, ...)
+function Log(arg)
 
-  str = "[" .. type .. "]"
-  for _,v in ipairs(arg) do
-    str = str .. "[" .. v .. "]"
+  str = ""
+
+  for i,v in ipairs(arg) do
+    str = str .. "[" .. tostring(v) .. "]"
   end
 
   -- TODO better way to do this?
@@ -144,11 +146,12 @@ local function Log(type, ...)
 end
 
 
-local function EventCombat(
-  eventCode , result , isError ,
-  abilityName, abilityGraphic, abilityActionSlotType,
-  sourceName, sourceType, targetName, targetType,
-  hitValue, powerType, damageType, log )
+-- EVENT_COMBAT_EVENT (integer result, bool isError, string abilityName, integer abilityGraphic, integer abilityActionSlotType, string sourceName, integer sourceType, string targetName, integer targetType, integer hitValue, integer powerType, integer damageType, bool log)
+
+function ACTCombatLog.EventCombat(
+  result , isError , abilityName, abilityGraphic, abilityActionSlotType,
+  sourceName, sourceType, targetName, targetType, hitValue, powerType,
+  damageType, log )
 
  -- result                    = ACTION_RESULT_* 
  -- abilityActionSlotType     = ACTION_SLOT_TYPE_*
@@ -156,63 +159,70 @@ local function EventCombat(
  -- powerType                 = POWERTYPE_*
  -- damageType                = DAMAGE_TYPE_*
  
+  local r =  enums('ActionResult', result)
+  local ast = enums('ActionSlotType', abilityActionSlotType)
+  local st = enums('CombatUnitType', sourceType)
+  local tt = enums('CombatUnitType', targetType)
+  local pt = enums('PowerType', powerType)
+  local dt = enums('DamageType', damageType)
+  
   -- Dump combat events 
-	Log( "CMBT", eventCode , result , isError ,
-       abilityName, abilityGraphic, abilityActionSlotType,
-       sourceName, sourceType, targetName, targetType,
-       hitValue, powerType, damageType, log )
+	Log( { "CMBT", r, isError ,
+       abilityName, ast,
+       sourceName, st, targetName, tt,
+       hitValue, pt, dt, log } )
 
   if isError then return end
   
 
 end
 
-local function EventEffectFullChanged()
+function ACTCombatLog.EventEffectFullChanged()
 
-  Log ( "EFFF" )
+  Log ( {"EFFF"} )
 
 end
 
-local function EventEffectChanged(changeType, effectSlot, effectName,
+function ACTCombatLog.EventEffectChanged(changeType, effectSlot, effectName,
   unitTag, beginTime, endTime, stackCount, iconName, buffType, effectType,
   abilityType, statusEffectType)
 
-  Log ( "EFFC", changeType, effectSlot, effectName, unitTag, beginTime,
+  Log ( {"EFFC", changeType, effectSlot, effectName, unitTag, beginTime,
         endTime, stackCount, iconName, buffType, effectType, abilityType, 
-        statusEffectType )
+        statusEffectType} )
 
 end
 
-local function EventSynergyGained(
+function ACTCombatLog.EventSynergyGained(
   synergyBuffSlot, grantedAbilityName, beginTime, endTime, iconName)
 
-  Log ( "SYNG", "Gain", synergyBuffSlot, grantedAbilityName,
-        beginTime, endTime, iconName)
+  Log ( {"SYNG", "Gain", synergyBuffSlot, grantedAbilityName,
+        beginTime, endTime, iconName} )
 
 end
 
 
-local function EventSynergyLost(synergyBuffSlot)
+function ACTCombatLog.EventSynergyLost(synergyBuffSlot)
 
-  Log ( "SYNG",  "Lost", synergyBuffSlot )
-
-end
-
-local function EventRevengeKill(killedPlayerName)
-
-  Log( "RVNG", killedPlayerName )
+  Log ( {"SYNG",  "Lost", synergyBuffSlot} )
 
 end
 
+function ACTCombatLog.EventRevengeKill(killedPlayerName)
 
-local function EventZoneChanged(zoneName, subZoneName, newSubzone)
-
-  Log( "ZONE", zoneName, subZoneName, newSubzone )
+  Log( {"RVNG", killedPlayerName} )
 
 end
 
 
-local function SetupCombatChatChannel()
+function ACTCombatLog.EventZoneChanged(zoneName, subZoneName, newSubzone)
+
+  Log( {"ZONE", zoneName, subZoneName, newSubzone} )
+
+end
+
+
+function SetupCombatChatChannel()
   -- JoinChatChannel??
   -- AddChatContainerTab
   -- SetChatContainerTabCategoryEnabled

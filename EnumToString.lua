@@ -37,7 +37,7 @@ function GetEnumerations()
       [ACTION_RESULT_EFFECT_GAINED]         = "EffectGained",
       [ACTION_RESULT_EFFECT_GAINED_DURATION] = "EffectGainedDuration",
       [ACTION_RESULT_FAILED]                = "Failed",
-      [ACTION_RESULT_FAILED_REQUIREMENTS] = "FailedRequirements",
+      [ACTION_RESULT_FAILED_REQUIREMENTS]   = "FailedRequirements",
       [ACTION_RESULT_FAILED_SIEGE_CREATION_REQUIREMENTS] = "FailedSiegeCreationRequirements",
       [ACTION_RESULT_FALLING]               = "Falling",
       [ACTION_RESULT_FALL_DAMAGE]           = "FallDamage",
@@ -147,10 +147,16 @@ function GetEnumerations()
   }
 
   return function(type, enum)
-    e = E[type]
+    local e = E[type]
     if e == nil then 
       return type .. enum
     else
+      local v =  e[enum]
+      if v == nil then 
+        return type .. enum
+      else
+        return v
+      end
     end
   end
 end
