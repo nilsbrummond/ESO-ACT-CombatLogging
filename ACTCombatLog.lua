@@ -38,7 +38,7 @@
 -- TBD - need more API info.
 -- 
 -- Possible:
--- CL:time:owner:source:target:event_type:ability_name:dmg_type:dmg:flags
+--    time CODE:...
 --
 --
 
@@ -132,12 +132,12 @@ end
 
 
 -- Write to the combat log...
-function Log(arg)
+function Log(code, ...)
 
-  str = ""
+  str = code
 
   for i,v in ipairs(arg) do
-    str = str .. "[" .. tostring(v) .. "]"
+    str = str .. ":" .. tostring(v)
   end
 
   -- TODO better way to do this?
@@ -149,7 +149,7 @@ end
 -- EVENT_COMBAT_EVENT (integer result, bool isError, string abilityName, integer abilityGraphic, integer abilityActionSlotType, string sourceName, integer sourceType, string targetName, integer targetType, integer hitValue, integer powerType, integer damageType, bool log)
 
 function ACTCombatLog.EventCombat(
-  result , isError , abilityName, abilityGraphic, abilityActionSlotType,
+  event, result , isError , abilityName, abilityGraphic, abilityActionSlotType,
   sourceName, sourceType, targetName, targetType, hitValue, powerType,
   damageType, log )
 
@@ -215,7 +215,7 @@ function ACTCombatLog.EventRevengeKill(killedPlayerName)
 end
 
 
-function ACTCombatLog.EventZoneChanged(zoneName, subZoneName, newSubzone)
+function ACTCombatLog.EventZoneChanged(code, zoneName, subZoneName, newSubzone)
 
   Log( {"ZONE", zoneName, subZoneName, newSubzone} )
 
