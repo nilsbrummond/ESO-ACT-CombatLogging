@@ -51,6 +51,9 @@ ACTCombatLog.enabled = false
 ACTCombatLog.Enable  = function() SetEnabled(true) end
 ACTCombatLog.Disable = function() SetEnabled(false) end
 
+ACTCombatLog.currentPlayer = nil
+ACTCombatLog.currentZone = nil
+
 -- Local
 
 
@@ -76,8 +79,14 @@ local function Initialize( self, addOnName )
     ACTCombatLog.Start()
   end
  
-
   SetupCombatChatChannel()
+
+  EVENT_MANAGER:RegisterForEvent( 
+    "ACTCombatLog", EVENT_PLAYER_ACTIVATED, ACTCombatLog.EventPlayerActivated )
+
+  if IsPlayerActivated() then
+    ACTCombatLog.EventPlayerActivated()
+  end
 
 
   -- Combat
@@ -125,7 +134,7 @@ local function Initialize( self, addOnName )
 
   -- Zone Changes
   EVENT_MANAGER:RegisterForEvent( 
-    "ACTCombatLog", EVENT_ZONE_CHANGED, ACTCombatLog.EventZoneChanged )
+    "ACTCombatLog", EVENT_ZONE_CHANGED, ACTCombatLog.EventPlayerActivated )
 
   ACTCombatLog.enabled = true
 end
@@ -146,6 +155,24 @@ function Log(code, ...)
 end
 
 
+function ACTCombatLog.EventPlayerActivated(...)
+
+  local name = GetUnitName('player')
+  local zone = GetUnitZone('player')
+
+  if (name ~=  ACTCombatLog.currentPlayer) or 
+     (zone ~= ACTCombatLog.currentZone) then
+
+    ACTCombatLog.currentPlayer = name
+    ACTCombatLog.currentZone = zone
+
+    Log ( "PLYR", name, zone )
+
+  end
+
+
+end
+
 -- EVENT_COMBAT_EVENT (integer result, bool isError, string abilityName, integer abilityGraphic, integer abilityActionSlotType, string sourceName, integer sourceType, string targetName, integer targetType, integer hitValue, integer powerType, integer damageType, bool log)
 
 function ACTCombatLog.EventCombat(
@@ -153,13 +180,15 @@ function ACTCombatLog.EventCombat(
   sourceName, sourceType, targetName, targetType, hitValue, powerType,
   damageType, log )
 
+  if isError then return end
+
  -- result                    = ACTION_RESULT_* 
  -- abilityActionSlotType     = ACTION_SLOT_TYPE_*
  -- sourceType / tartgetType  = COMBAT_UNIT_TYPE_*
  -- powerType                 = POWERTYPE_*
  -- damageType                = DAMAGE_TYPE_*
  
-  local r =  enums('ActionResult', result)
+  local r = enums('ActionResult', result)
   local ast = enums('ActionSlotType', abilityActionSlotType)
   local st = enums('CombatUnitType', sourceType)
   local tt = enums('CombatUnitType', targetType)
@@ -167,19 +196,14 @@ function ACTCombatLog.EventCombat(
   local dt = enums('DamageType', damageType)
   
   -- Dump combat events 
-	Log( { "CMBT", r, isError ,
-       abilityName, ast,
-       sourceName, st, targetName, tt,
-       hitValue, pt, dt, log } )
-
-  if isError then return end
-  
+	Log( "CMBT", r, isError, abilityName, ast, sourceName, st,
+         targetName, tt, hitValue, pt, dt, log )
 
 end
 
 function ACTCombatLog.EventEffectFullChanged()
 
-  Log ( {"EFFF"} )
+  Log ( "EFFF" )
 
 end
 
@@ -187,37 +211,30 @@ function ACTCombatLog.EventEffectChanged(changeType, effectSlot, effectName,
   unitTag, beginTime, endTime, stackCount, iconName, buffType, effectType,
   abilityType, statusEffectType)
 
-  Log ( {"EFFC", changeType, effectSlot, effectName, unitTag, beginTime,
+  Log ( "EFFC", changeType, effectSlot, effectName, unitTag, beginTime,
         endTime, stackCount, iconName, buffType, effectType, abilityType, 
-        statusEffectType} )
+        statusEffectType )
 
 end
 
 function ACTCombatLog.EventSynergyGained(
   synergyBuffSlot, grantedAbilityName, beginTime, endTime, iconName)
 
-  Log ( {"SYNG", "Gain", synergyBuffSlot, grantedAbilityName,
-        beginTime, endTime, iconName} )
+  Log ( "SYNG", "Gain", synergyBuffSlot, grantedAbilityName,
+        beginTime, endTime, iconName )
 
 end
 
 
 function ACTCombatLog.EventSynergyLost(synergyBuffSlot)
 
-  Log ( {"SYNG",  "Lost", synergyBuffSlot} )
+  Log ( "SYNG",  "Lost", synergyBuffSlot )
 
 end
 
 function ACTCombatLog.EventRevengeKill(killedPlayerName)
 
-  Log( {"RVNG", killedPlayerName} )
-
-end
-
-
-function ACTCombatLog.EventZoneChanged(code, zoneName, subZoneName, newSubzone)
-
-  Log( {"ZONE", zoneName, subZoneName, newSubzone} )
+  Log( "RVNG", killedPlayerName )
 
 end
 
