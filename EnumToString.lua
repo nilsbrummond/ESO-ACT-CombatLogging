@@ -45,8 +45,8 @@ function GetEnumerations()
       [ACTION_RESULT_GRAVEYARD_DISALLOWED_IN_INSTANCE] = "GraveyardDisallowedInInstance",
       [ACTION_RESULT_GRAVEYARD_TOO_CLOSE]   = "GraveyardTooClose",
       [ACTION_RESULT_HEAL]                  = "Heal",
-      [ACTION_RESULT_HOT_TICK]              = "HOTTick",
-      [ACTION_RESULT_HOT_TICK_CRITICAL]     = "HOTTickCritical",
+      [ACTION_RESULT_HOT_TICK]              = "HotTick",
+      [ACTION_RESULT_HOT_TICK_CRITICAL]     = "HotTickCritical",
       [ACTION_RESULT_IMMUNE]                = "Immune",
       [ACTION_RESULT_INSUFFICIENT_RESOURCE] = "InsufficientResource",
       [ACTION_RESULT_INTERCEPTED]           = "Intercepted",
@@ -116,7 +116,7 @@ function GetEnumerations()
       [COMBAT_UNIT_TYPE_NONE]       = "None",
       [COMBAT_UNIT_TYPE_OTHER]      = "Other",
       [COMBAT_UNIT_TYPE_PLAYER]     = "Player",
-      [COMBAT_UNIT_TYPE_PLAYER_PET] = "PPet"
+      [COMBAT_UNIT_TYPE_PLAYER_PET] = "Pet"
     },
 
     ["PowerType"] = {

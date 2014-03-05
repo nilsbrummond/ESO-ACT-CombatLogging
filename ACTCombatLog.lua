@@ -40,7 +40,24 @@
 -- Possible:
 --    time CODE:...
 --
---
+-- NOTE on Events to look at:
+  -- EVENT_UNIT_DEATH_STATE_CHANGED
+  -- EVENT_PLAYER_DEAD?
+  -- EVENT_PLAYER_DEATH_INFO_UPDATE?
+  -- EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED
+  -- EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED
+  -- EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED
+  -- EVENT_UNIT_FRAME_UPDATE
+  -- EVENT_PLAYER_COMBAT_STATE
+  -- EVENT_STEALTH_STATE_CHANGED
+  -- EVENT_ACTIVE_WEAPON_PAIR_CHANGED ??
+  -- EVENT_BEGIN_CAST
+  -- EVENT_DELAY_CAST
+  -- EVENT_END_CAST
+  -- EVENT_SYNERGY_ABILITY_GAINED
+  -- EVENT_SYNERGY_ABILITY_LOST
+  -- EVENT_REVENGE_KILL
+
 
 -- Global
 
@@ -56,8 +73,9 @@ ACTCombatLog.currentZone = nil
 
 -- Local
 
+local Convert = GetEnumerations()
 
-local enums = GetEnumerations()
+-- Fucntions
 
 local function Initialize( self, addOnName )
 
@@ -66,7 +84,7 @@ local function Initialize( self, addOnName )
 
   local defaults = 
   {
-    logging = false,
+    logging = true,
   }
 
   ACTCombatLog.savedVars = ZO_SavedVars:New(
@@ -74,12 +92,17 @@ local function Initialize( self, addOnName )
     math.floor( ACTCombatLog.version * 100 ),
     nil, defaults, nil)
 
+  SetupCombatChatChannel()
 
   if ACTCombatLog.savedVars.logging then
     ACTCombatLog.Start()
   end
- 
-  SetupCombatChatChannel()
+
+end
+
+local function Start()
+
+  ACTCombatLog.enabled = true
 
   EVENT_MANAGER:RegisterForEvent( 
     "ACTCombatLog", EVENT_PLAYER_ACTIVATED, ACTCombatLog.EventPlayerActivated )
@@ -93,20 +116,6 @@ local function Initialize( self, addOnName )
   EVENT_MANAGER:RegisterForEvent( 
     "ACTCombatLog", EVENT_COMBAT_EVENT, ACTCombatLog.EventCombat )
 
-  -- EVENT_UNIT_DEATH_STATE_CHANGED
-  -- EVENT_PLAYER_DEAD?
-  -- EVENT_PLAYER_DEATH_INFO_UPDATE?
-
-  -- EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED
-  -- EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED
-  -- EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED
-  -- EVENT_UNIT_FRAME_UPDATE
-  -- EVENT_PLAYER_COMBAT_STATE
-  -- EVENT_STEALTH_STATE_CHANGED
-  
-  -- EVENT_ACTIVE_WEAPON_PAIR_CHANGED ??
-
-
   -- Buffs / Debuffs
   EVENT_MANAGER:RegisterForEvent( 
     "ACTCombatLog", EVENT_EFFECTS_FULL_UPDATE,
@@ -116,41 +125,34 @@ local function Initialize( self, addOnName )
     "ACTCombatLog", EVENT_EFFECT_CHANGED, 
     ACTCombatLog.EventEffectChanged )
 
-  
-  -- Casting
-  -- EVENT_BEGIN_CAST
-  -- EVENT_DELAY_CAST
-  -- EVENT_END_CAST
-
-  -- Synergy
---  EVENT_MANAGER:RegisterForEvent( 
---    "ACTCombatLog", EVENT_SYNERGY_ABILITY_GAINED, ACTCombatLog.EventSynergyGained )
---  EVENT_MANAGER:RegisterForEvent( 
---    "ACTCombatLog", EVENT_SYNERGY_ABILITY_LOST, ACTCombatLog.EventSynergyLost )
-
-  -- Revenge Kill
---  EVENT_MANAGER:RegisterForEvent( 
---    "ACTCombatLog", EVENT_REVENGE_KILL, ACTCombatLog.EventRevengeKill )
-
   -- Zone Changes
   EVENT_MANAGER:RegisterForEvent( 
     "ACTCombatLog", EVENT_ZONE_CHANGED, ACTCombatLog.EventPlayerActivated )
 
-  ACTCombatLog.enabled = true
+end
+
+local function Stop()
+
+  ACTCombatLog.enabled = false
+
+  EVENT_MANAGER:UnregisterForEvent( "ACTCombatLog", EVENT_PLAYER_ACTIVATED )
+  EVENT_MANAGER:UnregisterForEvent( "ACTCombatLog", EVENT_COMBAT_EVENT )
+  EVENT_MANAGER:UnregisterForEvent( "ACTCombatLog", EVENT_EFFECTS_FULL_UPDATE )
+  EVENT_MANAGER:UnregisterForEvent( "ACTCombatLog", EVENT_EFFECT_CHANGED )
+  EVENT_MANAGER:UnregisterForEvent( "ACTCombatLog", EVENT_ZONE_CHANGED )
+
 end
 
 
 -- Write to the combat log...
-function Log(code, ...)
+local function Log(...)
 
-  str = code
+  -- TODO: better way to do this?  
+  --      Direct access to chat window?
 
-  for i,v in ipairs(arg) do
-    str = str .. ":" .. tostring(v)
-  end
+  -- FIXME ':' is used in some abitily names...  need a fix.
 
-  -- TODO better way to do this?
-  d (str)
+  d ( table.concat(arg, ':') )
 
 end
 
@@ -166,10 +168,11 @@ function ACTCombatLog.EventPlayerActivated(...)
     ACTCombatLog.currentPlayer = name
     ACTCombatLog.currentZone = zone
 
-    Log ( "PLYR", name, zone )
+    -- Either player character or zone changed.
+    -- Also include a log file version for compatability checking in ACT.
+    Log ( "*PLYR", name, zone,  ACTCombatLog.version)
 
   end
-
 
 end
 
@@ -182,28 +185,33 @@ function ACTCombatLog.EventCombat(
 
   if isError then return end
 
+  -- TODO filter out what we can here...
+
  -- result                    = ACTION_RESULT_* 
  -- abilityActionSlotType     = ACTION_SLOT_TYPE_*
  -- sourceType / tartgetType  = COMBAT_UNIT_TYPE_*
  -- powerType                 = POWERTYPE_*
  -- damageType                = DAMAGE_TYPE_*
  
-  local r = enums('ActionResult', result)
-  local ast = enums('ActionSlotType', abilityActionSlotType)
-  local st = enums('CombatUnitType', sourceType)
-  local tt = enums('CombatUnitType', targetType)
-  local pt = enums('PowerType', powerType)
-  local dt = enums('DamageType', damageType)
-  
+  local r = Convert('ActionResult', result)
+  local ast = Convert('ActionSlotType', abilityActionSlotType)
+  local st = Convert('CombatUnitType', sourceType)
+  local tt = Convert('CombatUnitType', targetType)
+  local pt = Convert('PowerType', powerType)
+  local dt = Convert('DamageType', damageType)
+ 
+  -- NOTE: isError and log are both boolean and don't coerce to string
+  --       So don't pass them directly to Log.  We shouldn't need them anyway.
+
   -- Dump combat events 
-	Log( "CMBT", r, isError, abilityName, ast, sourceName, st,
-         targetName, tt, hitValue, pt, dt, log )
+	Log( "*CMBT", r, abilityName, ast, sourceName, st,
+         targetName, tt, hitValue, pt, dt )
 
 end
 
 function ACTCombatLog.EventEffectFullChanged()
 
-  Log ( "EFFF" )
+  Log ( "*EFFF" )
 
 end
 
@@ -211,8 +219,8 @@ function ACTCombatLog.EventEffectChanged(changeType, effectSlot, effectName,
   unitTag, beginTime, endTime, stackCount, iconName, buffType, effectType,
   abilityType, statusEffectType)
 
-  Log ( "EFFC", changeType, effectSlot, effectName, unitTag, beginTime,
-        endTime, stackCount, iconName, buffType, effectType, abilityType, 
+  Log ( "*EFFC", changeType, effectSlot, effectName, unitTag, beginTime,
+        endTime, stackCount, buffType, effectType, abilityType, 
         statusEffectType )
 
 end
@@ -220,7 +228,7 @@ end
 function ACTCombatLog.EventSynergyGained(
   synergyBuffSlot, grantedAbilityName, beginTime, endTime, iconName)
 
-  Log ( "SYNG", "Gain", synergyBuffSlot, grantedAbilityName,
+  Log ( "*SYNG", "Gain", synergyBuffSlot, grantedAbilityName,
         beginTime, endTime, iconName )
 
 end
@@ -228,13 +236,13 @@ end
 
 function ACTCombatLog.EventSynergyLost(synergyBuffSlot)
 
-  Log ( "SYNG",  "Lost", synergyBuffSlot )
+  Log ( "*SYNG",  "Lost", synergyBuffSlot )
 
 end
 
 function ACTCombatLog.EventRevengeKill(killedPlayerName)
 
-  Log( "RVNG", killedPlayerName )
+  Log( "*RVNG", killedPlayerName )
 
 end
 
@@ -251,11 +259,18 @@ end
 
 local function SetLoggingState(active)
   if active then
-    -- Register for events
-    -- turn on /chatlog
+
+    if not ACTCombatLog.savedVars.logging then
+      ACTCombatLog.savedVars.logging = true
+      Start()
+    end
+
   else
-    -- turn off /chatlog
-    -- Deregister for events
+
+    if ACTCombatLog.savedVars.logging then
+      ACTCombatLog.savedVars.logging = false
+      Stop()
+    end
 
   end
 end
