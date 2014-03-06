@@ -183,6 +183,7 @@ function ACTCombatLog.EventCombat(
   sourceName, sourceType, targetName, targetType, hitValue, powerType,
   damageType, log )
 
+  -- TODO Hope this is a reasonable first filter...
   if isError then return end
 
   -- TODO filter out what we can here...
@@ -291,3 +292,4 @@ EVENT_MANAGER:RegisterForEvent(
 
 -- Slash Commands --
 SLASH_COMMANDS["/combatlog"] = CommandHandler
+
