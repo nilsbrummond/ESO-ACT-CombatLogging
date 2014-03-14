@@ -2,5 +2,6 @@
 ## APIVersion: 100000
 ## SavedVariables: ACT-CL
 
+EnumToString.lua
 ACTCombatLog.xml
 ACTCombatLog.lua

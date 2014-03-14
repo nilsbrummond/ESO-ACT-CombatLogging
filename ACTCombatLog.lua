@@ -58,7 +58,6 @@
   -- EVENT_SYNERGY_ABILITY_LOST
   -- EVENT_REVENGE_KILL
 
-
 -- Global
 
 ACTCombatLog = {}
@@ -76,29 +75,6 @@ ACTCombatLog.currentZone = nil
 local Convert = GetEnumerations()
 
 -- Fucntions
-
-local function Initialize( self, addOnName )
-
-  -- Only Init us...
-  if addOnName ~= "ACTCombatLog" then return end
-
-  local defaults = 
-  {
-    logging = true,
-  }
-
-  ACTCombatLog.savedVars = ZO_SavedVars:New(
-    "ACTCombatLogVars",
-    math.floor( ACTCombatLog.version * 100 ),
-    nil, defaults, nil)
-
-  SetupCombatChatChannel()
-
-  if ACTCombatLog.savedVars.logging then
-    ACTCombatLog.Start()
-  end
-
-end
 
 local function Start()
 
@@ -143,6 +119,28 @@ local function Stop()
 
 end
 
+local function Initialize( self, addOnName )
+
+  -- Only Init us...
+  if addOnName ~= "ACTCombatLog" then return end
+
+  local defaults = 
+  {
+    logging = true,
+  }
+
+  ACTCombatLog.savedVars = ZO_SavedVars:New(
+    "ACTCombatLogVars",
+    math.floor( ACTCombatLog.version * 100 ),
+    nil, defaults, nil)
+
+  SetupCombatChatChannel()
+
+  if ACTCombatLog.savedVars.logging then
+    Start()
+  end
+
+end
 
 -- Write to the combat log...
 local function Log(...)
@@ -152,7 +150,7 @@ local function Log(...)
 
   -- FIXME ':' is used in some abitily names...  need a fix.
 
-  d ( table.concat(arg, ':') )
+  d ( table.concat({...}, ':') )
 
 end
 
@@ -183,10 +181,12 @@ function ACTCombatLog.EventCombat(
   sourceName, sourceType, targetName, targetType, hitValue, powerType,
   damageType, log )
 
-  -- TODO Hope this is a reasonable first filter...
+  -- NOTE Hope this is a reasonable first filter...
   if isError then return end
 
   -- TODO filter out what we can here...
+  if ((sourceType ~= COMBAT_UNIT_TYPE_PLAYER) and 
+      (targetType ~= COMBAT_UNIT_TYPE_PLAYER) ) then return end
 
  -- result                    = ACTION_RESULT_* 
  -- abilityActionSlotType     = ACTION_SLOT_TYPE_*
@@ -195,6 +195,7 @@ function ACTCombatLog.EventCombat(
  -- damageType                = DAMAGE_TYPE_*
  
   local r = Convert('ActionResult', result)
+  -- local err = tostring(isError)
   local ast = Convert('ActionSlotType', abilityActionSlotType)
   local st = Convert('CombatUnitType', sourceType)
   local tt = Convert('CombatUnitType', targetType)
@@ -212,7 +213,7 @@ end
 
 function ACTCombatLog.EventEffectFullChanged()
 
-  Log ( "*EFFF" )
+  -- Log ( "*EFFF" )
 
 end
 
@@ -220,9 +221,9 @@ function ACTCombatLog.EventEffectChanged(changeType, effectSlot, effectName,
   unitTag, beginTime, endTime, stackCount, iconName, buffType, effectType,
   abilityType, statusEffectType)
 
-  Log ( "*EFFC", changeType, effectSlot, effectName, unitTag, beginTime,
-        endTime, stackCount, buffType, effectType, abilityType, 
-        statusEffectType )
+  -- Log ( "*EFFC", changeType, effectSlot, effectName, unitTag, beginTime,
+  --       endTime, stackCount, buffType, effectType, abilityType, 
+  --       statusEffectType )
 
 end
 

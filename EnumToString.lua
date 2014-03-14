@@ -131,29 +131,29 @@ function GetEnumerations()
     },
 
     ["DamageType"] = {
-      [DAMAGE_TYPE_COLD]        = "Cold",
-      [DAMAGE_TYPE_DISEASE]     = "Disease",
-      [DAMAGE_TYPE_DROWN]       = "Drown",
-      [DAMAGE_TYPE_EARTH]       = "Earth",
-      [DAMAGE_TYPE_FIRE]        = "Fire",
+      [DAMAGE_TYPE_NONE]        = "None",     -- 0
       [DAMAGE_TYPE_GENERIC]     = "Generic",
-      [DAMAGE_TYPE_MAGIC]       = "Magic",
-      [DAMAGE_TYPE_NONE]        = "None",
-      [DAMAGE_TYPE_OBLIVION]    = "Oblivion",
       [DAMAGE_TYPE_PHYSICAL]    = "Physical",
-      [DAMAGE_TYPE_POISON]      = "Poison",
-      [DAMAGE_TYPE_SHOCK]       = "Shock"
+      [DAMAGE_TYPE_FIRE]        = "Fire",
+      [DAMAGE_TYPE_SHOCK]       = "Shock",
+      [DAMAGE_TYPE_OBLIVION]    = "Oblivion",
+      [DAMAGE_TYPE_COLD]        = "Cold",
+      [DAMAGE_TYPE_EARTH]       = "Earth",
+      [DAMAGE_TYPE_MAGIC]       = "Magic",
+      [DAMAGE_TYPE_DROWN]       = "Drown",
+      [DAMAGE_TYPE_DISEASE]     = "Disease",
+      [DAMAGE_TYPE_POISON]      = "Poison"
     }
   }
 
-  return function(type, enum)
-    local e = E[type]
+  return function(cat, enum)
+    local e = E[cat]
     if e == nil then 
-      return type .. enum
+      return cat .. enum
     else
       local v =  e[enum]
       if v == nil then 
-        return type .. enum
+        return cat .. enum
       else
         return v
       end
