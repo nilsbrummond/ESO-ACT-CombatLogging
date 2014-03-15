@@ -150,7 +150,16 @@ local function Log(...)
 
   -- FIXME ':' is used in some abitily names...  need a fix.
 
-  d ( table.concat({...}, ':') )
+  -- NOTE - d() does not get logged by /chatlog any more.
+  -- d ( table.concat({...}, ':') )
+ 
+  -- NOTE: Closes game due to message limit:
+  -- SendChatMessage ( 
+  --   table.concat({...}, ':'), 
+  --   CHAT_CHANNEL_WHISPER,
+  --   ACTCombatLog.currentPlayer)
+
+  CHAT_SYSTEM:AddMessage( table.concat({...}, ':') )
 
 end
 
@@ -174,6 +183,19 @@ function ACTCombatLog.EventPlayerActivated(...)
 
 end
 
+local function cleanPlayerName(name, nameType)
+
+  if ( (nameType == COMBAT_UNIT_TYPE_PLAYER) or
+       (nameType == COMBAT_UNIT_TYPE_OTHER) ) then
+
+    return string.gsub( name , "%^.*", "")
+
+  else
+    return name
+  end
+
+end
+
 -- EVENT_COMBAT_EVENT (integer result, bool isError, string abilityName, integer abilityGraphic, integer abilityActionSlotType, string sourceName, integer sourceType, string targetName, integer targetType, integer hitValue, integer powerType, integer damageType, bool log)
 
 function ACTCombatLog.EventCombat(
@@ -185,6 +207,8 @@ function ACTCombatLog.EventCombat(
   if isError then return end
 
   -- TODO filter out what we can here...
+  -- Right now filter to the player.
+  -- Later have player/group/all options.
   if ((sourceType ~= COMBAT_UNIT_TYPE_PLAYER) and 
       (targetType ~= COMBAT_UNIT_TYPE_PLAYER) ) then return end
 
@@ -197,7 +221,9 @@ function ACTCombatLog.EventCombat(
   local r = Convert('ActionResult', result)
   -- local err = tostring(isError)
   local ast = Convert('ActionSlotType', abilityActionSlotType)
+  local sn = cleanPlayerName(sourceName, sourceType)
   local st = Convert('CombatUnitType', sourceType)
+  local tn = cleanPlayerName(targetName, targetType)
   local tt = Convert('CombatUnitType', targetType)
   local pt = Convert('PowerType', powerType)
   local dt = Convert('DamageType', damageType)
@@ -206,8 +232,7 @@ function ACTCombatLog.EventCombat(
   --       So don't pass them directly to Log.  We shouldn't need them anyway.
 
   -- Dump combat events 
-	Log( "*CMBT", r, abilityName, ast, sourceName, st,
-         targetName, tt, hitValue, pt, dt )
+	Log( "*CMBT", r, abilityName, ast, sn, st, tn, tt, hitValue, pt, dt )
 
 end
 
