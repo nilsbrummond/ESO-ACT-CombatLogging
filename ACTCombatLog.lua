@@ -70,6 +70,12 @@ ACTCombatLog.Disable = function() SetEnabled(false) end
 ACTCombatLog.currentPlayer = nil
 ACTCombatLog.currentZone = nil
 
+ACTCombatLog.act_defaults = 
+{
+  logging = true,
+  combatlog = {}
+}
+
 -- Local
 
 local Convert = GetEnumerations()
@@ -119,20 +125,18 @@ local function Stop()
 
 end
 
-local function Initialize( self, addOnName )
+local function Initialize( eventCode, addOnName )
 
   -- Only Init us...
   if addOnName ~= "ACTCombatLog" then return end
 
-  local defaults = 
-  {
-    logging = true,
-  }
-
   ACTCombatLog.savedVars = ZO_SavedVars:New(
-    "ACTCombatLogVars",
+    "ACTCL_Vars",
     math.floor( ACTCombatLog.version * 100 ),
-    nil, defaults, nil)
+    nil, ACTCombatLog.act_defaults, nil)
+
+  -- clear the saved log
+  ACTCombatLog.savedVars.combatlog = {}
 
   SetupCombatChatChannel()
 
@@ -149,6 +153,7 @@ local function Log(...)
   --      Direct access to chat window?
 
   -- FIXME ':' is used in some abitily names...  need a fix.
+  --       Actually can be handled in the ACT plugin.
 
   -- NOTE - d() does not get logged by /chatlog any more.
   -- d ( table.concat({...}, ':') )
@@ -159,7 +164,20 @@ local function Log(...)
   --   CHAT_CHANNEL_WHISPER,
   --   ACTCombatLog.currentPlayer)
 
-  CHAT_SYSTEM:AddMessage( table.concat({...}, ':') )
+  local msg = table.concat({...}, ':')
+
+  CHAT_SYSTEM:AddMessage( msg )
+
+  local timeStr = FormatTimeMilliseconds(
+                    GetGameTimeMilliseconds(),
+                    TIME_FORMAT_STYLE_CLOCK_TIME,
+                    TIME_FORMAT_PRECISION_TENTHS,
+                    TIME_FORMAT_DIRECTION_DESCENDING)
+
+
+  table.insert(
+    ACTCombatLog.savedVars.combatlog,
+    GetGameTimeMilliseconds() .. " " .. msg)
 
 end
 
@@ -209,8 +227,8 @@ function ACTCombatLog.EventCombat(
   -- TODO filter out what we can here...
   -- Right now filter to the player.
   -- Later have player/group/all options.
-  if ((sourceType ~= COMBAT_UNIT_TYPE_PLAYER) and 
-      (targetType ~= COMBAT_UNIT_TYPE_PLAYER) ) then return end
+--  if ((sourceType ~= COMBAT_UNIT_TYPE_PLAYER) and 
+--      (targetType ~= COMBAT_UNIT_TYPE_PLAYER) ) then return end
 
  -- result                    = ACTION_RESULT_* 
  -- abilityActionSlotType     = ACTION_SLOT_TYPE_*
