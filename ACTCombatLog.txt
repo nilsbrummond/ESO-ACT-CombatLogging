@@ -1,5 +1,5 @@
 ## Title: ACT Combat Logging
-## APIVersion: 100000
+## APIVersion: 100003
 ## SavedVariables: ACTCL_Vars
 
 EnumToString.lua

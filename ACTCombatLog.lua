@@ -230,6 +230,8 @@ function ACTCombatLog.EventCombat(
 --  if ((sourceType ~= COMBAT_UNIT_TYPE_PLAYER) and 
 --      (targetType ~= COMBAT_UNIT_TYPE_PLAYER) ) then return end
 
+  if (sourceName == nil) and (targetName == nil) then return end
+
  -- result                    = ACTION_RESULT_* 
  -- abilityActionSlotType     = ACTION_SLOT_TYPE_*
  -- sourceType / tartgetType  = COMBAT_UNIT_TYPE_*
